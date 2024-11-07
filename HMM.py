@@ -33,18 +33,49 @@ class HMM:
         self.transitions = transitions
         self.emissions = emissions
 
-    ## part 1 - you do this.
     def load(self, basename):
-        """reads HMM structure from transition (basename.trans),
-        and emission (basename.emit) files,
-        as well as the probabilities."""
-        pass
+        """loads a model from files basename.trans and basename.emit"""
+        trans_file = basename + ".trans"
+        emit_file = basename + ".emit"
+        
+        ## .trans file parsing
+        with open(trans_file) as f :
+            for line in f:
+                line = line.strip().split()
+                if len(line) == 2:
+                    self.transitions[line[0]] = line[1]
+                else:
+                    if line[0] not in self.transitions:
+                        self.transitions[line[0]] = {}
+                    self.transitions[line[0]][line[1]] = float(line[2])
+        
+        ## .emit file parsing
+        with open(emit_file) as f:
+            for line in f:
+                line = line.strip().split()
+                if len(line) == 2:
+                    self.emissions[line[0]] = line[1]
+                else:
+                    if line[0] not in self.emissions:
+                        self.emissions[line[0]] = {}
+                    self.emissions[line[0]][line[1]] = float(line[2])
 
+        
 
    ## you do this.
     def generate(self, n):
         """return an n-length Sequence by randomly sampling from this HMM."""
-        pass
+        stateseq = []
+        outputseq = []
+        for i in range(n):
+            if i == 0:
+                state = numpy.random.choice(list(self.transitions["#"].keys()), p=list(self.transitions["#"].values()))
+            else:
+                state = numpy.random.choice(list(self.transitions[stateseq[i-1]].keys()), p=list(self.transitions[stateseq[i-1]].values()))
+            output = numpy.random.choice(list(self.emissions[state].keys()), p=list(self.emissions[state].values()))
+            stateseq.append(state)
+            outputseq.append(output)
+        return Sequence(stateseq, outputseq)
 
     def forward(self, sequence):
         pass
@@ -63,6 +94,16 @@ class HMM:
 
 
 
+if __name__ == "__main__":
+    hmm = HMM()
+    hmm.load('cat')
+    # print(hmm.transitions)
+    # print(hmm.emissions)
+    print(hmm.generate(10))
+    # hmm.forward(Sequence(['happy', 'grumpy', 'hungry'], ['meow', 'purr', 'meow']))
+    # hmm.viterbi(Sequence(['happy', 'grumpy', 'hungry'], ['meow', 'purr', 'meow']))
+    # hmm.viterbi(Sequence(['happy', 'grumpy', 'hungry'], ['meow', 'purr', 'meow']))
 
 
-
+    # parser = argparse.ArgumentParser(description='HMM')
+    # parser.add_argument('basename', type=str, help='basename for model files')
