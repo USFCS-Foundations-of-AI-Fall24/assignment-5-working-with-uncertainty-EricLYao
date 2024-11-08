@@ -78,19 +78,19 @@ class HMM:
         return Sequence(stateseq, outputseq)
 
     def forward(self, sequence):
+        ## you do this: Implement the Viterbi algorithm. Given a Sequence with a list of emissions,
+        ## determine the most likely sequence of states.
+        
+        # Pseudocode:
+        # set up matrix M, with P=1.0 for the '#' state
         pass
-    ## you do this: Implement the Viterbi algorithm. Given a Sequence with a list of emissions,
-    ## determine the most likely sequence of states.
-
-
-
 
 
 
     def viterbi(self, sequence):
+        ## you do this. Given a sequence with a list of emissions, fill in the most likely
+        ## hidden states using the Viterbi algorithm.
         pass
-    ## You do this. Given a sequence with a list of emissions, fill in the most likely
-    ## hidden states using the Viterbi algorithm.
 
 
 

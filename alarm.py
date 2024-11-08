@@ -43,8 +43,17 @@ cpd_marycalls = TabularCPD(
     values=[[0.1, 0.7], [0.9, 0.3]],
     evidence=["Alarm"],
     evidence_card=[2],
-state_names={"Alarm":['yes','no'], "MaryCalls":['yes', 'no']},
+    state_names={"Alarm":['yes','no'], "MaryCalls":['yes', 'no']},
 )
+
+# cpd_bothcalls = TabularCPD(
+#     variable="BothCalls",
+#     variable_card=2,
+#     values=[[0.95, 0.05], [0.05, 0.95]],
+#     evidence=["JohnCalls", "MaryCalls"],
+#     evidence_card=[2, 2],
+#     state_names={"JohnCalls":['yes', 'no'], "MaryCalls":['yes', 'no'], "BothCalls":['yes', 'no']},
+# )
 
 # Associating the parameters with the model structure
 alarm_model.add_cpds(
@@ -52,7 +61,24 @@ alarm_model.add_cpds(
 
 alarm_infer = VariableElimination(alarm_model)
 
-print(alarm_infer.query(variables=["JohnCalls"],evidence={"Earthquake":"yes"}))
-q = alarm_infer.query(variables=["JohnCalls", "Earthquake"],evidence={"Burglary":"yes","MaryCalls":"yes"}))
-print(q)
+# probability that john calls given that there is an earthquake
+# print(alarm_infer.query(variables=["JohnCalls"],evidence={"Earthquake":"yes"}))
+
+# probability that john calls or an earthquake occurs given that there is a burgulary and mary has called
+# q = alarm_infer.query(variables=["JohnCalls", "Earthquake"],evidence={"Burglary":"yes","MaryCalls":"yes"})
+# print(q)
+
+q2 = alarm_infer.query(variables=["MaryCalls", "Earthquake"],evidence={"JohnCalls":"yes"})
+# print(q2)
+
+q3 = alarm_infer.query(variables=["MaryCalls", "JohnCalls"],evidence={"Alarm":"yes"})
+# print(q3)
+
+q4 = alarm_infer.query(variables=["Alarm"],evidence={"MaryCalls":"yes"})
+# print(q4)
+
+q5_1 = alarm_infer.query(variables=["MaryCalls"],evidence={"Alarm":"yes"})
+print(q5_1)
+q5 = alarm_infer.query(variables=["MaryCalls"],evidence={"Alarm":"no"})
+print(q5)
 
