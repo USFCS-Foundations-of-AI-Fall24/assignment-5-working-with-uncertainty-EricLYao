@@ -1,5 +1,6 @@
 
-from sklearn.datasets import load_iris
+from sklearn.datasets import load_digits
+from sklearn.datasets import load_breast_cancer
 from sklearn import tree
 from sklearn.model_selection import KFold
 from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
@@ -11,28 +12,64 @@ import joblib
 ### This code shows how to use KFold to do cross_validation.
 ### This is just one of many ways to manage training and test sets in sklearn.
 
-iris = load_iris()
-X, y = iris.data, iris.target
-scores = []
+digits = load_digits()
+X, y = digits.data, digits.target
 kf = KFold(n_splits=5)
-for train_index, test_index in kf.split(X) :
-    X_train, X_test, y_train, y_test = \
-        (X[train_index], X[test_index], y[train_index], y[test_index])
-    clf = tree.DecisionTreeClassifier()
-    clf.fit(X_train, y_train)
-    scores.append(clf.score(X_test, y_test))
 
-print(scores)
+n_estimators_options = [10, 25, 50]
+criterion_options = ["gini", "entropy"]
 
-## Part 2. This code (from https://scikit-learn.org/1.5/auto_examples/ensemble/plot_forest_hist_grad_boosting_comparison.html)
-## shows how to use GridSearchCV to do a hyperparameter search to compare two techniques.
-from sklearn.datasets import load_breast_cancer
+results = {
+    "n_estimators": [],
+    "criterion": [],
+    "fold_1_score": [],
+    "fold_2_score": [],
+    "fold_3_score": [],
+    "fold_4_score": [],
+    "fold_5_score": [],
+    "average_score": []
+}
 
-X,y = load_breast_cancer(return_X_y=True, as_frame=True)
+for n_estimators in n_estimators_options:
+    for criterion in criterion_options:
+        fold_scores = []
+        
+        # Perform KFold cross-validation
+        for train_index, test_index in kf.split(X):
+            X_train, X_test = X[train_index], X[test_index]
+            y_train, y_test = y[train_index], y[test_index]
 
+            # Initialize Random Forest with current parameters
+            clf = RandomForestClassifier(n_estimators=n_estimators, criterion=criterion)
+            clf.fit(X_train, y_train)
+
+            # Calculate and store the score for this fold
+            score = clf.score(X_test, y_test)
+            fold_scores.append(score)
+
+        # Add results to the dictionary
+        results["n_estimators"].append(n_estimators)
+        results["criterion"].append(criterion)
+        results["fold_1_score"].append(fold_scores[0])
+        results["fold_2_score"].append(fold_scores[1])
+        results["fold_3_score"].append(fold_scores[2])
+        results["fold_4_score"].append(fold_scores[3])
+        results["fold_5_score"].append(fold_scores[4])
+        results["average_score"].append(sum(fold_scores) / len(fold_scores))
+
+results_df = pd.DataFrame(results)
+print(results_df)
+
+# Part 2. This code (from https://scikit-learn.org/1.5/auto_examples/ensemble/plot_forest_hist_grad_boosting_comparison.html)
+# shows how to use GridSearchCV to do a hyperparameter search to compare two techniques.
+
+X, y = load_breast_cancer(return_X_y=True, as_frame=True)
+
+# Get number of physical cores
 N_CORES = joblib.cpu_count(only_physical_cores=True)
 print(f"Number of physical cores: {N_CORES}")
 
+# Define models
 models = {
     "Random Forest": RandomForestClassifier(
         min_samples_leaf=5, random_state=0, n_jobs=N_CORES
@@ -41,12 +78,17 @@ models = {
         max_leaf_nodes=15, random_state=0, early_stopping=False
     ),
 }
-param_grids = {
-    "Random Forest": {"n_estimators": [10, 20, 50, 100]},
-    "Hist Gradient Boosting": {"max_iter": [10, 20, 50, 100, 300, 500]},
-}
-cv = KFold(n_splits=2, shuffle=True, random_state=0)
 
+# Define parameter grids
+param_grids = {
+    "Random Forest": {"n_estimators": [5, 10, 15, 20]},
+    "Hist Gradient Boosting": {"max_iter": [25, 50, 75, 100]},
+}
+
+# Use 5-fold cross-validation
+cv = KFold(n_splits=5, shuffle=True, random_state=0)
+
+# Perform grid search and store results
 results = []
 for name, model in models.items():
     grid_search = GridSearchCV(
@@ -58,7 +100,10 @@ for name, model in models.items():
     result = {"model": name, "cv_results": pd.DataFrame(grid_search.cv_results_)}
     results.append(result)
 
-print(results)
+# Print results
+for res in results:
+    print(f"Results for {res['model']}:")
+    print(res["cv_results"])
 
 #### Part 3: This shows how to generate a scatter plot of your results
 
