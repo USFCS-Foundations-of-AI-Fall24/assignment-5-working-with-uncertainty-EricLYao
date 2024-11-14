@@ -80,28 +80,22 @@ class HMM:
     def forward(self, sequence):
         ## you do this: Implement the Viterbi algorithm. Given a Sequence with a list of emissions,
         ## determine the most likely sequence of states.
+        observations = sequence.outputseq
+        states = list(self.transitions.keys()) 
+        Matrix = numpy.zeros((len(states), len(observations) + 1))
+        Matrix[0][0] = 1
         
-        obeservations = sequence.outputseq
-        num_states = len(self.transitions)
-        num_observations = len(obeservations)
-        
-        Matrix = numpy.zeros((num_states, num_observations + 1))
-        Matrix[0][0] = 1 # initial state
-        
-        for i in range(1, num_observations + 1):
-            observation = obeservations[i-1]
-            states = list(self.transitions.keys()) 
-            for state in states:
-                if state == '#':
-                    continue
-                sum = 0
-                for state2 in states:  
-                    s_idx = states.index(state)
-                    sum += Matrix[states.index(state2)][i - 1] * self.transitions[state2][state] * self.emissions[state][observation]
-                Matrix[s_idx][i] = round(sum,4)
-        highest_prob = numpy.argmax(Matrix[:, num_observations])
+        for i in range(1, len(observations) + 1):
+            observation = observations[i-1]
+            for s_index, state in enumerate(states):
+                if state != '#':
+                    sum = 0
+                    for s2_index, state2 in enumerate(states):  
+                        if state in self.transitions[state2] and observation in self.emissions[state]:
+                            sum += Matrix[s2_index][i - 1] * self.transitions[state2][state] * self.emissions[state][observation]
+                    Matrix[s_index][i] = sum
+        highest_prob = numpy.argmax(Matrix[:, len(observations)])
         most_probable_state = states[highest_prob]
-        print(Matrix)
         return most_probable_state 
 
 
@@ -109,63 +103,69 @@ class HMM:
     def viterbi(self, sequence):
         ## you do this. Given a sequence with a list of emissions, fill in the most likely
         ## hidden states using the Viterbi algorithm.
-        obeservations = sequence.outputseq
-        num_states = len(self.transitions)
-        num_observations = len(obeservations)
+        observations = sequence.outputseq
+        states = list(self.transitions.keys()) 
         
-        Matrix = numpy.zeros((num_states, num_observations + 1))
-        Matrix[0][0] = 1
-        V_matrix = numpy.zeros((num_states, num_observations + 1))
-        T_matrix = numpy.zeros((num_states, num_observations + 1))
+        V_matrix = numpy.zeros((len(states), len(observations) + 1))
+        V2_matrix = numpy.zeros((len(states), len(observations) + 1))
+        V_matrix[0][0] = 1
             
-        for i in range(1, num_observations + 1):
-            observation = obeservations[i-1]
-            states = list(self.transitions.keys()) 
-            for state in states:
-                if state == '#':
-                    continue
-                largest_idx = 0
-                curr_largest = 0
-                sum = 0
-                for v_index, state2 in enumerate(states): 
-                    curr_prob = Matrix[states.index(state2)][i - 1] * self.transitions[state2][state] * self.emissions[state][observation]
-                    s_idx = states.index(state)
-                    sum += curr_prob
-                    if curr_prob > curr_largest:
-                        largest_idx = v_index
-                        curr_largest = curr_prob
-                Matrix[s_idx][i] = round(sum,4)
-                V_matrix[s_idx][i] = largest_idx
-                T_matrix[s_idx][i] = curr_largest
-        
-        print(Matrix)
-        print(V_matrix)
-        print(T_matrix)
-        
-        #print the most likely sequence
-        most_likely = []
-        highest_prob = numpy.argmax(Matrix[:, num_observations])
-        most_likely.append(states[highest_prob])
-        for i in range(num_observations, 0, -1):
-            most_likely.append(states[int(V_matrix[highest_prob][i])])
-        most_likely.reverse()
-        print(most_likely)
-        
+        for i in range(1, len(observations) + 1):
+            observation = observations[i-1]
+            for s_index, state in enumerate(states):
+                if state != '#':
+                    largest_idx = 0
+                    curr_largest = 0
+                    for v_index, state2 in enumerate(states): 
+                        if state in self.transitions[state2] and observation in self.emissions[state]:
+                            curr_prob = V_matrix[v_index][i - 1] * self.transitions[state2][state] * self.emissions[state][observation]
+                            if curr_prob > curr_largest:
+                                largest_idx = v_index
+                                curr_largest = curr_prob
+                    V_matrix[s_index][i] = curr_largest
+                    V2_matrix[s_index][i] = largest_idx
 
+        most_likely_seq = []
+        most_likely_seq.append(int(numpy.argmax(V_matrix[:, len(observations)])))
+        for i in range(len(observations), 0, -1):
+            most_likely_seq.append(int(V2_matrix[int(most_likely_seq[-1])][i]))
+        most_likely_seq.reverse()
+        most_likely_states = []
+        for i in most_likely_seq:
+            most_likely_states.append(states[i])
+            
+        return most_likely_states
 
 
 if __name__ == "__main__":
+    # hmm = HMM()
+    # hmm.load('lander')
+    # testSeq = hmm.generate(10)
+    # print(' '.join(testSeq.outputseq))
+    
+    # print(hmm.forward(Sequence(['#', 'happy', 'grumpy', 'hungry'], ['purr', 'purr', 'meow', 'silent', 'meow', 'purr', 'meow', 'meow', 'silent', 'purr'])))
+    
+    # print(hmm.viterbi(Sequence(['#', 'happy', 'grumpy', 'hungry'], ['purr', 'silent', 'silent', 'meow', 'meow'])))
+    # print("Most likely hidden states: ", hmm.viterbi(testSeq))
+    
+    parser = argparse.ArgumentParser(description='Hidden Markov Model')
+    parser.add_argument('basename', type=str, help='basename without file extension')
+    parser.add_argument('obsfile', type=str, help='observation file')
+    parser.add_argument('--forward', action='store_true', help='run forward algorithm')
+    parser.add_argument('--viterbi', action='store_true', help='run Viterbi algorithm')
+    args = parser.parse_args()
+
     hmm = HMM()
-    hmm.load('cat')
-    # print(hmm.transitions)
-    # print(hmm.emissions)
-    # print(hmm.generate(10))
-    # print(hmm.forward(Sequence(['#', 'happy', 'grumpy', 'hungry'], ['purr', 'silent', 'silent', 'meow', 'meow'])))
-    
-    print(hmm.viterbi(Sequence(['#', 'happy', 'grumpy', 'hungry'], ['purr', 'silent', 'silent', 'meow', 'meow'])))
-    # hmm.viterbi(Sequence(['happy', 'grumpy', 'hungry'], ['meow', 'purr', 'meow']))
-    
+    hmm.load(args.basename)
 
-
-    # parser = argparse.ArgumentParser(description='HMM')
-    # parser.add_argument('basename', type=str, help='basename for model files')
+    with open(args.obsfile) as f:
+        for line in f:
+            line = line.strip().split()
+            if line: 
+                seq = Sequence([hmm.transitions.keys], line)
+                if args.viterbi:
+                    print("Most likely hidden states: ", hmm.viterbi(seq))
+                elif args.forward:
+                    print("Most likely final state: ", hmm.forward(seq))
+                else:
+                    print("Not a valid function")
